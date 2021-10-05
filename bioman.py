@@ -31,7 +31,7 @@ def json2fasta(json_obj):
         name = json_obj["seq_id"],
         seq = Seq(json_obj["seq"]))
 
-def json2blast(json_obj):
+def json2table(json_obj):
     return pandas.DataFrame(json_obj)
 
 def parse_orf_faa(fasta_json):
@@ -74,7 +74,14 @@ def find(db, query_dict):
         matched = True
         for key in query_dict:
             if key in doc:
-                if doc[key] != query_dict[key]:
+                if type(query_dict[key]).__name__ == "str":
+                    criteria = lambda x: x == query_dict[key]
+                elif type(query_dict[key]).__name__ == "function":
+                    criteria = lambda x: query_dict[key](x)
+                elif type(query_dict[key]).__name__ == "Pattern":
+                    criteria = lambda x: query_dict[key].match(x)
+                
+                if not criteria(doc[key]):
                     matched = False
                     break
             else:
