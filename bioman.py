@@ -51,22 +51,57 @@ def call_orf_finder(query):
     with open(".tmp_in", "w") as f:
         f.write(query)
     ret = ""
-    p = subprocess.Popen(["ORFfinder", "-s", "2", "-in", ".tmp_in"], stdout = subprocess.PIPE)
-    outs, errs = p.communicate()
-    ret = outs.decode()
+    try:
+        proc = subprocess.Popen(["ORFfinder", "-s", "2", "-in", ".tmp_in"], stdout = subprocess.PIPE)
+        outs, errs = proc.communicate(300)
+        ret = outs.decode()
+    except:
+        print("Error") # handle error
+    finally:
+        proc.kill()
     return ret
 
 def call_diamond_blast(query, program, database, outfmt="", timeout=600):
-    cmd = ["diamond", program, "-d", database, "-f", "6"]  + outfmt.split()
+    cmd = ["diamond", program, "-d", database, "-f", "6"] + outfmt.split()
     ret = ""
-    proc = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     try:
+        proc = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         outs, errs = proc.communicate(query.encode(), timeout)
+        ret = outs.decode()
     except:
-        pass # handle error
+        print("Error") # handle error
     finally:
         proc.kill()
-    ret = outs.decode()
+    return ret
+
+def call_cd_hit_est(fasta, threshold):
+    with open(".tmp_in", "w") as f:
+        f.write(fasta)
+    ret = ""
+    try:
+        proc = subprocess.Popen(["cd-hit-est", "-i", ".tmp_in", "-o", ".tmp_out", "-c", threshold])
+        proc.wait()
+        with open(".tmp_out") as f:
+            ret = f.read()
+    except:
+        print("Error") # handle error
+    finally:
+        proc.kill()
+    return ret
+
+def call_cd_hit(fasta, threshold):
+    with open(".tmp_in", "w") as f:
+        f.write(fasta)
+    ret = ""
+    try:
+        proc = subprocess.Popen(["cd-hit", "-i", ".tmp_in", "-o", ".tmp_out", "-c", threshold])
+        proc.wait()
+        with open(".tmp_out") as f:
+            ret = f.read()
+    except:
+        print("Error") # handle error
+    finally:
+        proc.kill()
     return ret
 
 def find(db, query_dict):
