@@ -147,7 +147,8 @@ class BioMongoDBClient:
             if overwrite: # WARNING: We will clear and overwrite it!
                 collist = self.db.list_collection_names()
                 for col in collist:
-                    self.db[col].drop()
+                    if col != "system.indexes":
+                        self.db[col].drop()
 
     def insert(self, doc, col_name="temp"):
         col = self.db[col_name]
@@ -160,7 +161,7 @@ class BioMongoDBClient:
             pass # invalid type
         return ret
 
-    def find(self, query, selector, col_name="temp"):
+    def find(self, query=None, selector=None, col_name="temp"):
         col = self.db[col_name]
         return col.find(query, selector)
     
