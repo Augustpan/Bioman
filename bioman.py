@@ -6,6 +6,7 @@ from Bio.SeqRecord import SeqRecord
 import subprocess
 import pandas
 import io
+import pymongo
 
 def fasta2json(fasta_seq, fasta_file=""):
     with io.BytesIO(fasta_seq.encode()) as f:
@@ -129,9 +130,52 @@ def inner_join(left, right, on):
     ret_list = []
     for key in on:
         for ldoc in left:
-            for rdoc in bioman.find(right, {on[key]: lambda x: x == ldoc[key]}):
+            for rdoc in find(right, {on[key]: lambda x: x == ldoc[key]}):
                 ndoc = {}
                 ndoc.update(ldoc)
                 ndoc.update(rdoc)
                 ret_list.append(ndoc)
     return ret_list
+
+class BioMongoDBClient:
+    
+    def __init__(self, host="localhost", port=27017, db_name="temp", overwrite=True):
+        self.client = pymongo.MongoClient("mongodb://{}:{}/".format(host, port))
+        self.db = self.client[db_name]
+        dblist = self.client.list_database_names()
+        if db_name in dblist:
+            if overwrite: # WARNING: We will clear and overwrite it!
+                collist = self.db.list_collection_names()
+                for col in collist:
+                    self.db[col].drop()
+
+    def insert(self, doc, col_name="temp"):
+        col = self.db[col_name]
+        ret = None
+        if type(doc).__name__ == "list":
+            ret = col.insert_many(doc)
+        elif type(doc).__name__ == "dict":
+            ret = col.insert_one(doc)
+        else:
+            pass # invalid type
+        return ret
+
+    def find(self, query, selector, col_name="temp"):
+        col = self.db[col_name]
+        return col.find(query, selector)
+    
+    def delete(self, query, smode=False, col_name="temp"):
+        col = self.db[col_name]
+        if smode:
+            ret = col.delete_one(query)
+        else:
+            ret = col.delete_many(query)
+        return ret
+
+    def update(self, query, new_doc, smode=False, col_name="temp"):
+        col = self.db[col_name]
+        if smode:
+            ret = col.update_one(query, new_doc)
+        else:
+            ret = col.update_many(query, new_doc)
+        return ret
