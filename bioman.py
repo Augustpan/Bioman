@@ -89,3 +89,14 @@ def find(db, query_dict):
                 break
         if matched:
             yield doc
+
+def inner_join(left, right, on):
+    ret_list = []
+    for key in on:
+        for ldoc in left:
+            for rdoc in bioman.find(right, {on[key]: lambda x: x == ldoc[key]}):
+                ndoc = {}
+                ndoc.update(ldoc)
+                ndoc.update(rdoc)
+                ret_list.append(ndoc)
+    return ret_list
