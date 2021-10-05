@@ -105,6 +105,23 @@ def call_cd_hit(fasta, threshold):
         proc.kill()
     return ret
 
+def call_cap3(fasta, p = 80, o = 20, s = 800):
+    with open(".tmp_in", "w") as f:
+        f.write(fasta)
+    ret = ""
+    try:
+        proc = subprocess.Popen(["cap3", ".tmp_in", "-p", p, "-o", o, "-s", s], stdout=subprocess.PIPE)
+        proc.communicate()
+        with open(".tmp_in.cap.singlets") as f:
+            ret = f.read()
+        with open(".tmp_in.cap.contigs") as f:
+            ret += f.read()
+    except:
+        print("Error") # handle error
+    finally:
+        proc.kill()
+    return ret
+
 def find(db, query_dict):
     for doc in db:
         matched = True
