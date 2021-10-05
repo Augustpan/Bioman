@@ -56,8 +56,8 @@ def call_orf_finder(query):
     ret = outs.decode()
     return ret
 
-def call_diamond_blast(query, program, database, outfmt="6", timeout=600):
-    cmd = ["diamond", program, "-d", database, "-f"]  + outfmt.split()
+def call_diamond_blast(query, program, database, outfmt="", timeout=600):
+    cmd = ["diamond", program, "-d", database, "-f", "6"]  + outfmt.split()
     ret = ""
     proc = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     try:
