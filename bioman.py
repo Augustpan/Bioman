@@ -73,46 +73,46 @@ def call_diamond_blast(query, program, database, outfmt="", timeout=600):
         print("Error") # handle error
     finally:
         proc.kill()
-    return ret
+    return ret, outs.decode()
 
 def call_cd_hit_est(fasta, threshold):
     with open(".tmp_in", "w") as f:
         f.write(fasta)
     ret = ""
     try:
-        proc = subprocess.Popen(["cd-hit-est", "-i", ".tmp_in", "-o", ".tmp_out", "-c", threshold])
-        proc.wait()
+        proc = subprocess.Popen(["cd-hit-est", "-i", ".tmp_in", "-o", ".tmp_out", "-c", str(threshold)], stdout=subprocess.PIPE)
+        outs, errs = proc.communicate()
         with open(".tmp_out") as f:
             ret = f.read()
     except:
         print("Error") # handle error
     finally:
         proc.kill()
-    return ret
+    return ret, outs.decode()
 
 def call_cd_hit(fasta, threshold):
     with open(".tmp_in", "w") as f:
         f.write(fasta)
     ret = ""
     try:
-        proc = subprocess.Popen(["cd-hit", "-i", ".tmp_in", "-o", ".tmp_out", "-c", threshold])
-        proc.wait()
+        proc = subprocess.Popen(["cd-hit", "-i", ".tmp_in", "-o", ".tmp_out", "-c", str(threshold)], stdout=subprocess.PIPE)
+        outs, errs = proc.communicate()
         with open(".tmp_out") as f:
             ret = f.read()
     except:
         print("Error") # handle error
     finally:
         proc.kill()
-    return ret
+    return ret, outs.decode()
 
-def call_cap3(fasta, p = 80, o = 20, s = 800):
+def call_cap3(fasta, options=""):
     with open(".tmp_in", "w") as f:
         f.write(fasta)
     contigs = ""
     singlets = ""
     contigs_info = ""
     try:
-        proc = subprocess.Popen(["cap3", ".tmp_in", "-p", p, "-o", o, "-s", s], stdout=subprocess.PIPE)
+        proc = subprocess.Popen(["cap3", ".tmp_in"] + options.split(), stdout=subprocess.PIPE)
         outs, errs = proc.communicate()
         contigs_info = outs.decode()
         with open(".tmp_in.cap.singlets") as f:
