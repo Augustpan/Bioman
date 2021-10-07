@@ -8,6 +8,9 @@ import pandas
 import io
 import pymongo
 
+from scipy.cluster.hierarchy import linkage, cut_tree
+from scipy.spatial.distance import squareform
+
 def fasta2json(fasta_seq, fasta_file=""):
     with io.BytesIO(fasta_seq.encode()) as f:
         for rec in SeqIO.parse(io.TextIOWrapper(f), "fasta"):
@@ -16,21 +19,20 @@ def fasta2json(fasta_seq, fasta_file=""):
                     "description": rec.description, 
                     "seq": str(rec.seq)}
 
-def blast2json(s, outfmt=""):
-    if outfmt == "":
-        outfmt = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"
-    cols = outfmt.split()
-    for line in s.split("\n"):
+def blast2json(s, fmt=""):
+    lines = s.split("\n")
+    cols = fmt.split()
+    for line in lines:
         if line.strip():
             sp = line.split("\t")
             yield dict(zip(cols, sp))
 
 def json2fasta(json_obj):
     return SeqRecord(
-        id = json_obj["seq_id"],
-        description = json_obj["description"],
-        name = json_obj["seq_id"],
-        seq = Seq(json_obj["seq"]))
+            id = json_obj["seq_id"],
+            description = json_obj["description"],
+            name = json_obj["seq_id"],
+            seq = Seq(json_obj["seq"]))
 
 def json2table(json_obj):
     return pandas.DataFrame(json_obj)
@@ -45,8 +47,28 @@ def parse_orf_faa(fasta_json):
     fasta_json["ORF_from"] = ORF_from
     fasta_json["ORF_to"] = ORF_to
     fasta_json["ORF_isforward"] = end > start
-    fasta_json["ORF_ispartial"] = ORF_description.endswith("partial")    
+    fasta_json["ORF_ispartial"] = ORF_description.endswith("partial")
     return fasta_json
+
+def parse_msa_dist(file_name, cut_off=90, criteria="single"):
+    """ Parse multi-sequences alignment percent identity matrix,
+        and assign species (groups) according to similarity.
+
+        Arguments:
+            file_name -- the input file should be in csv format, 
+                the geneious % identity matirx of MSA is preferred.
+            cut_off -- the % identity cut off to group sequences.
+            criteria -- see 'scipy.cluster.hierarchy.linkage'
+
+        Return:
+            a dict map virus_name to group_label
+    """
+    df = pandas.read_csv(file_name, index_col=0)
+    dist_matrix = squareform(100-df.fillna(100))
+    Z = linkage(dist_matrix, criteria)
+    group_labels = cut_tree(Z, height=100-cut_off).transpose().flatten()
+    
+    return dict(zip(df.index, group_labels))
 
 def call_orf_finder(query):
     with open(".tmp_in", "w") as f:
@@ -62,8 +84,9 @@ def call_orf_finder(query):
         proc.kill()
     return ret
 
-def call_diamond_blast(query, program, database, outfmt="", timeout=600):
-    cmd = ["diamond", program, "-d", database, "-f", "6"] + outfmt.split()
+def call_diamond_blast(query, program, database, outfmt="", options="", timeout=600):
+    query = query.replace("-", "")
+    cmd = ["diamond", program, "-d", database, "-f", "6"] + outfmt.split() + options.split()
     ret = ""
     try:
         proc = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -73,7 +96,7 @@ def call_diamond_blast(query, program, database, outfmt="", timeout=600):
         print("Error") # handle error
     finally:
         proc.kill()
-    return ret, outs.decode()
+    return ret
 
 def call_cd_hit_est(fasta, threshold):
     with open(".tmp_in", "w") as f:
