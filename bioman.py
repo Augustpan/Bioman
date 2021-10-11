@@ -21,6 +21,8 @@ def fasta2json(fasta_seq, fasta_file=""):
 
 def blast2json(s, fmt=""):
     lines = s.split("\n")
+    if fmt == "":
+        fmt = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"
     cols = fmt.split()
     for line in lines:
         if line.strip():
