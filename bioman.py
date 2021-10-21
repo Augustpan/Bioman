@@ -86,6 +86,20 @@ def call_orf_finder(query):
         proc.kill()
     return ret
 
+def call_getorf(query):
+    with open(".tmp_in", "w") as f:
+        f.write(query)
+    ret = ""
+    try:
+        proc = subprocess.Popen(["getorf", ".tmp_in", ".tmp_out"])
+        with open(".tmp_out") as f:
+            ret = f.read()
+    except:
+        print("Error") # handle error
+    finally:
+        proc.kill()
+    return ret
+
 def call_diamond_blast(query, program, database, outfmt="", options="", timeout=600):
     query = query.replace("-", "")
     cmd = ["diamond", program, "-d", database, "-f", "6"] + outfmt.split() + options.split()
